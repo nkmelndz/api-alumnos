@@ -1,0 +1,13 @@
+# Render ignores Docker files
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Development files
+.env
+node_modules
+npm-debug.log
+.git
+
+# Fly.io files
+fly.toml
