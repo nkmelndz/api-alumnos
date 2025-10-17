@@ -1,0 +1,73 @@
+services:
+  # Servicio de la base de datos MySQL
+  mysql:
+    image: mysql:8.0
+    container_name: alumnos_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: alumnos_db
+      MYSQL_USER: appuser
+      MYSQL_PASSWORD: apppassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - alumnos_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      timeout: 20s
+      retries: 10
+
+  # Servicio de la API Node.js
+  api:
+    build: .
+    container_name: alumnos_api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=mysql
+      - DB_USER=root
+      - DB_PASSWORD=rootpassword
+      - DB_NAME=alumnos_db
+      - DB_PORT=3306
+      - PORT=3000
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - alumnos_network
+    volumes:
+      - ./src:/app/src
+    command: npm start
+
+  # Servicio opcional de phpMyAdmin para administrar la base de datos
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: alumnos_phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: rootpassword
+    depends_on:
+      - mysql
+    networks:
+      - alumnos_network
+
+# Volúmenes
+volumes:
+  mysql_data:
+    driver: local
+
+# Red personalizada
+networks:
+  alumnos_network:
+    driver: bridge
